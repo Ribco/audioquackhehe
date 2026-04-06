@@ -20,7 +20,7 @@ jobs:
         run: npm install
 
       - name: Install yt-dlp
-        run: pip install yt-dlp
+        run: pip install -U yt-dlp
 
       - name: Start bot
         run: node index.js
