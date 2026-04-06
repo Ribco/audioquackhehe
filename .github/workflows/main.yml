@@ -2,13 +2,14 @@ name: AudioQuack
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 on:
   workflow_dispatch:
 
 jobs:
 
+  # ─────────────────────────────────────────────────────────────
   prep_ubuntu:
     name: Prepare on Ubuntu
     runs-on: ubuntu-latest
@@ -30,6 +31,9 @@ jobs:
       - name: Install dependencies (Ubuntu)
         shell: bash
         run: |
+          # Prevent youtube-dl-exec postinstall download
+          export YOUTUBE_DL_SKIP_DOWNLOAD=true
+
           if [ -f package-lock.json ]; then
             echo "Lockfile found → using npm ci"
             npm ci
@@ -37,28 +41,28 @@ jobs:
             echo "No lockfile → using npm install"
             npm install
           fi
+
           python3 -m pip install -U yt-dlp discord.py spotify-dlp
 
       - name: Write cookies file
-        shell: bash
         run: |
           mkdir -p artifact
           printf '%s\n' "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
           cp cookies.txt artifact/cookies.txt
 
       - name: Debug cookies
-        shell: bash
         run: |
-          echo "Cookies lines:"
+          echo "Cookies preview:"
           wc -l cookies.txt
           head -n 5 cookies.txt
 
-      - name: Upload cookies to artifact
+      - name: Upload cookies artifact
         uses: actions/upload-artifact@v4
         with:
           name: cookies
           path: artifact/cookies.txt
 
+  # ─────────────────────────────────────────────────────────────
   macos_bot:
     name: Start Bot on macOS
     needs: prep_ubuntu
@@ -82,7 +86,7 @@ jobs:
           name: cookies
           path: .
 
-      - name: Install Homebrew (macOS) & system deps
+      - name: Install Homebrew & system deps
         run: |
           if ! command -v brew >/dev/null 2>&1; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -114,9 +118,10 @@ jobs:
           echo "VPN exit IP:"
           curl ifconfig.me || true
 
-      - name: Install dependencies on macOS
-        shell: bash
+      - name: Install dependencies (macOS)
         run: |
+          export YOUTUBE_DL_SKIP_DOWNLOAD=true
+
           if [ -f package-lock.json ]; then
             echo "Lockfile found → using npm ci"
             npm ci
@@ -124,10 +129,10 @@ jobs:
             echo "No lockfile → using npm install"
             npm install
           fi
+
           python3 -m pip install -U yt-dlp discord.py spotify-dlp
 
       - name: Start the bot
-        shell: bash
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           COOKIES_FILE: cookies.txt
