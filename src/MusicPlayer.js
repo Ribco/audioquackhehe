@@ -612,21 +612,17 @@ class MusicPlayer {
                 const youtubedl = require('youtube-dl-exec');
                 
                 await youtubedl(downloadUrl, {
-                    output: filepath,
-                    format: 'bestaudio',
-                    noCheckCertificates: true,
-                    noWarnings: true,
-                    preferFreeFormats: true,
-                    addHeader: [
-                        'referer:youtube.com',
-                        'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    ],
-                    postprocessorArgs: {
-                        'ffmpeg': ['-c:a', 'libopus', '-b:a', '128k']
-                    },
-                    extractAudio: true,
-                    audioFormat: 'opus'
-                });
+    ...YouTube.getYtDlpOptions({
+        output: filepath,
+        format: 'bestaudio',
+        preferFreeFormats: true,
+        postprocessorArgs: {
+            'ffmpeg': ['-c:a', 'libopus', '-b:a', '128k']
+        },
+        extractAudio: true,
+        audioFormat: 'opus'
+    })
+});
             } else {
                 // For DirectLink - fetch and transcode with FFmpeg
                 const fetch = await ensureFetch();
