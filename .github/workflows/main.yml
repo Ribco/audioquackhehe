@@ -41,7 +41,7 @@ jobs:
         run: npm install
 
       - name: Install yt-dlp
-        run: pip install -U yt-dlp
+        run: pip install -U yt-dlp && pip install -U discord.py spotify-dlp
 
       - name: Write YouTube cookies
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
