@@ -1,11 +1,18 @@
 name: AudioQuack
 
+# Cancel older runs in the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
 
 jobs:
-  run:
-    runs-on: macos-latest
+  # ───────────────────────────────────────────────────────────
+  prep_ubuntu:
+    name: Prepare on Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -16,8 +23,62 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install system deps
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
         shell: bash
+        run: |
+          npm ci
+          python3 -m pip install -U yt-dlp discord.py spotify-dlp
+
+      - name: Write cookies file
+        shell: bash
+        run: |
+          mkdir -p artifact
+          printf '%s\n' "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+          cp cookies.txt artifact/cookies.txt
+
+      - name: Debug cookies.txt
+        shell: bash
+        run: |
+          echo "Cookies preview:"
+          wc -l cookies.txt
+          head -n 5 cookies.txt
+
+      - name: Upload cookies artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cookies
+          path: artifact/cookies.txt
+
+  # ───────────────────────────────────────────────────────────
+  macos_bot:
+    name: Start Bot on macOS
+    runs-on: macos-latest
+    needs: prep_ubuntu
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Download cookies artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cookies
+          path: .
+
+      - name: Install Homebrew (if missing) & system deps
         run: |
           if ! command -v brew >/dev/null 2>&1; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -32,55 +93,38 @@ jobs:
           fi
 
           brew update
-          brew install wireguard-tools curl || true
+          brew install wireguard-tools || true
 
       - name: Write WireGuard config
-        shell: bash
         run: |
           sudo mkdir -p /etc/wireguard
           printf '%s\n' "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
           sudo chmod 600 /etc/wireguard/wg0.conf
 
       - name: Bring up VPN
-        run: sudo wg-quick up wg0
+        id: vpn_up
+        run: |
+          echo "Bringing up VPN..."
+          sudo wg-quick up wg0
 
-      - name: Verify VPN public IP
+      - name: Verify public IP
         run: |
           sleep 5
-          echo "Public IP via curl (should reflect VPN exit):"
-          curl ifconfig.me
+          echo "VPN IP (should show exit IP):"
+          curl ifconfig.me || true
 
-      - name: Install Node & Python deps
+      - name: Install Python deps on macOS
         run: |
-          npm install
           python3 -m pip install -U yt-dlp discord.py spotify-dlp
 
-      - name: Write cookies
-        shell: bash
-        run: |
-          mkdir -p artifact
-          printf '%s\n' "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
-          cp cookies.txt artifact/cookies.txt
-
-      - name: Debug cookies.txt
-        run: |
-          wc -l cookies.txt
-          head -n 3 cookies.txt
-
-      - name: Start bot
-        run: node index.js
+      - name: Start the bot
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           COOKIES_FILE: cookies.txt
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
           SPOTIFY_ACCESS_TOKEN: ${{ secrets.SPOTIFY_ACCESS_TOKEN }}
-
-      - name: Upload cookies artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cookies
-          path: artifact/cookies.txt
+        run: node index.js
 
       - name: Bring down VPN
         if: always()
