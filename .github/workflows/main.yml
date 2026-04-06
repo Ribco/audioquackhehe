@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -16,30 +16,32 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install yt-dlp + tools
+      - name: Install system deps
         run: |
-          pip install -U yt-dlp
           sudo apt update
           sudo apt install -y wireguard curl
 
-      # -------------------------
-      # VPN CONFIG (SET THIS)
-      # -------------------------
-      - name: Setup VPN
+      - name: Write WireGuard config
         run: |
-          echo "${{ secrets.WG_CONFIG }}" > wg0.conf
-          sudo wg-quick up wg0
+          mkdir -p /etc/wireguard
+          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
+          sudo chmod 600 /etc/wireguard/wg0.conf
 
-      # -------------------------
-      # CHECK IP (before bot)
-      # -------------------------
-      - name: Show IP + Location
+      - name: Bring up VPN
         run: |
-          curl ipinfo.io
+          sudo wg-quick up /etc/wireguard/wg0.conf
+
+      - name: Verify VPN public IP
+        run: |
+          sleep 5
+          echo "Public IP before VPN check:"
           curl ifconfig.me
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install yt-dlp
+        run: pip install -U yt-dlp
 
       - name: Write YouTube cookies
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
@@ -49,7 +51,7 @@ jobs:
           mkdir -p artifact
           cp cookies.txt artifact/cookies.txt
 
-      - name: Debug cookies
+      - name: Debug cookies.txt
         run: |
           wc -l cookies.txt
           head -3 cookies.txt
@@ -58,10 +60,9 @@ jobs:
         run: node index.js
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          COOKIES_FROM_BROWSER: ""
+          COOKIES_FILE: cookies.txt
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
-          COOKIES_FILE: cookies.txt
 
       - name: Upload cookies artifact
         uses: actions/upload-artifact@v4
@@ -69,9 +70,6 @@ jobs:
           name: cookies
           path: artifact/cookies.txt
 
-      # -------------------------
-      # DISCONNECT VPN
-      # -------------------------
-      - name: Stop VPN
+      - name: Bring down VPN
         if: always()
-        run: sudo wg-quick down wg0
+        run: sudo wg-quick down /etc/wireguard/wg0.conf
