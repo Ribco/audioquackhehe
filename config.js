@@ -56,9 +56,9 @@ module.exports = {
         filter: 'audioonly',
         quality: 'highestaudio',
         highWaterMark: 1 << 25,
-        cookiesFromBrowser: process.env.COOKIES_FROM_BROWSER || null, // 'chrome', 'firefox', 'edge', 'safari'
-        cookiesFile: process.env.COOKIES_FILE || null, // './cookies.txt'
-        poToken: process.env.YOUTUBE_PO_TOKEN || null, // YouTube PO Token (sunucu IP'leri için)
+        cookiesFromBrowser: 'chrome', // 'chrome', 'firefox', 'edge', 'safari'
+        cookiesFile: './cookies.txt', // './cookies.txt'
+        poToken: 'Mng45EYBNMHhhzjYbnghfy71RSEetM8ZfKRo9F2hIytp_LuNH42880vcWFYpHOLwZQMdPt7mCq_oejJc1xgEv4QfpQendRe8OKwtMSuOh-WBHIDFdB2IVCL2U0dF9nPpKT7K51BjfhiUujEa3tMZ8WiS5LvBxO9xTOY=', // YouTube PO Token (sunucu IP'leri için)
     },
 
     // Sharding Settings (for bots in 1000+ servers)
