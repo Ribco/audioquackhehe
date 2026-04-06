@@ -25,6 +25,12 @@ jobs:
       - name: Write YouTube cookies
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
 
+      # âœ… ensure file exists and copy it
+      - name: Prepare cookies artifact
+        run: |
+          mkdir -p artifact
+          cp cookies.txt artifact/cookies.txt
+
       - name: Debug cookies
         run: |
           echo "COOKIES_FILE=$COOKIES_FILE"
@@ -32,14 +38,20 @@ jobs:
           head -3 cookies.txt
         env:
           COOKIES_FILE: cookies.txt
-          COOKIES_FROM_BROWSER: ""
+          COOKIES_FROM_BROWSER: "chrome"
 
       - name: Start bot
         run: node index.js
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          COOKIES_FROM_BROWSER: ""
+          COOKIES_FROM_BROWSER: "chrome"
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
           COOKIES_FILE: cookies.txt
-          
+
+      # âœ… upload artifact (THIS WAS MISSING)
+      - name: Upload cookies artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cookies
+          path: artifact/cookies.txt
