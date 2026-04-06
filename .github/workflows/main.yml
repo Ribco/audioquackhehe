@@ -17,26 +17,32 @@ jobs:
           node-version: 18
 
       - name: Install system deps
+        shell: bash
         run: |
-          # Install Homebrew if missing
-          which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          if ! command -v brew >/dev/null 2>&1; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
 
-          # Add brew bin dirs to PATH
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
+          if [ -d /opt/homebrew/bin ]; then
+            echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+            echo "/opt/homebrew/sbin" >> "$GITHUB_PATH"
+          elif [ -d /usr/local/bin ]; then
+            echo "/usr/local/bin" >> "$GITHUB_PATH"
+            echo "/usr/local/sbin" >> "$GITHUB_PATH"
+          fi
 
-          # Install required tools
           brew update
-          brew install wireguard-tools curl
+          brew install wireguard-tools curl || true
 
       - name: Write WireGuard config
+        shell: bash
         run: |
           sudo mkdir -p /etc/wireguard
-          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          printf '%s\n' "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
           sudo chmod 600 /etc/wireguard/wg0.conf
 
       - name: Bring up VPN
-        run: sudo wg-quick up /etc/wireguard/wg0.conf
+        run: sudo wg-quick up wg0
 
       - name: Verify VPN public IP
         run: |
@@ -44,16 +50,17 @@ jobs:
           echo "Public IP via curl (should reflect VPN exit):"
           curl ifconfig.me
 
-      - name: Check issues
-       uses: actions/configure-pages@v4
-
       - name: Install Node & Python deps
         run: |
           npm install
-          pip install -U yt-dlp discord.py spotify-dlp
+          python3 -m pip install -U yt-dlp discord.py spotify-dlp
 
       - name: Write cookies
-        run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+        shell: bash
+        run: |
+          mkdir -p artifact
+          printf '%s\n' "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+          cp cookies.txt artifact/cookies.txt
 
       - name: Debug cookies.txt
         run: |
@@ -67,7 +74,7 @@ jobs:
           COOKIES_FILE: cookies.txt
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
-          SPOTIFY_ACCESS_TOKEN: ${{ env.SPOTIFY_ACCESS_TOKEN }}
+          SPOTIFY_ACCESS_TOKEN: ${{ secrets.SPOTIFY_ACCESS_TOKEN }}
 
       - name: Upload cookies artifact
         uses: actions/upload-artifact@v4
@@ -77,4 +84,4 @@ jobs:
 
       - name: Bring down VPN
         if: always()
-        run: sudo wg-quick down /etc/wireguard/wg0.conf
+        run: sudo wg-quick down wg0
