@@ -230,7 +230,7 @@ setTimeout(() => {
         }
 
         // Set bot activity
-        setInterval(() => client.user.setActivity({ name: `${config.bot.status}`, type: ActivityType.Listening }), 10000);
+setInterval(() => client.user.setActivity({ name: `${config.bot.status}`, type: ActivityType.Streaming, url: 'https://twitch.tv/audioquack' }), 10000);
 
         // Don't restore here in sharded mode - wait for shard manager to broadcast
         // For non-sharded mode, restore immediately
