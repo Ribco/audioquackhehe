@@ -5,7 +5,7 @@ const chalk = require('chalk');
 // Create sharding manager
 const manager = new ShardingManager('./index.js', {
     token: config.discord.token,
-    totalShards: config.sharding?.totalShards || 'auto', // 'auto' will automatically calculate optimal shard count
+    totalShards: config.sharding?.totalShards || '5', // 'auto' will automatically calculate optimal shard count
     shardList: config.sharding?.shardList || 'auto',
     mode: config.sharding?.mode || 'process', // 'process' or 'worker'
     respawn: config.sharding?.respawn !== false, // Auto-respawn crashed shards
