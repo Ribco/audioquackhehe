@@ -8,37 +8,35 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install system dependencies on macOS
+      - name: Install system deps
         run: |
-          # Install Homebrew if not already present
+          # Install Homebrew if missing
           which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-          # Add Homebrew to PATH for this session
-          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
-          eval "$(/opt/homebrew/bin/brew shellenv)"
+          # Add brew bin dirs to PATH
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/sbin" >> $GITHUB_PATH
 
-          # Update brew and install WireGuard tools + curl
+          # Install required tools
           brew update
           brew install wireguard-tools curl
-        timeout-minutes: 10
 
       - name: Write WireGuard config
         run: |
-          sudo mkdir -p /usr/local/etc/wireguard
-          echo "${{ secrets.WG_CONFIG }}" | sudo tee /usr/local/etc/wireguard/wg0.conf > /dev/null
-          sudo chmod 600 /usr/local/etc/wireguard/wg0.conf
+          sudo mkdir -p /etc/wireguard
+          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          sudo chmod 600 /etc/wireguard/wg0.conf
 
-      - name: Bring up WireGuard VPN
-        run: |
-          sudo wg-quick up /usr/local/etc/wireguard/wg0.conf
+      - name: Bring up VPN
+        run: sudo wg-quick up /etc/wireguard/wg0.conf
 
       - name: Verify VPN public IP
         run: |
@@ -46,24 +44,36 @@ jobs:
           echo "Public IP via curl (should reflect VPN exit):"
           curl ifconfig.me
 
-      - name: Install Node.js dependencies
-        run: npm install
-
-      - name: Install Python tools
+      - name: Refresh Spotify Access Token
+        id: refresh_spotify
         run: |
-          pip install -U yt-dlp
-          pip install -U discord.py spotify-dlp
+          # Request new access token using stored refresh token (OAuth2)
+          RESPONSE=$( \
+            curl -s -X POST https://accounts.spotify.com/api/token \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "grant_type=refresh_token" \
+              -d "refresh_token=${{ secrets.SPOTIFY_REFRESH_TOKEN }}" \
+              -d "client_id=${{ secrets.SPOTIFY_CLIENT_ID }}" \
+              -d "client_secret=${{ secrets.SPOTIFY_CLIENT_SECRET }}" \
+          )
 
-      - name: Write and debug YouTube cookies
+          echo "Spotify refresh response: $RESPONSE"
+
+          ACCESS_TOKEN=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])")
+          echo "SPOTIFY_ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+      - name: Install Node & Python deps
         run: |
-          echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+          npm install
+          pip install -U yt-dlp discord.py spotify-dlp
+
+      - name: Write cookies
+        run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+
+      - name: Debug cookies.txt
+        run: |
           wc -l cookies.txt
           head -n 3 cookies.txt
-
-      - name: Prepare cookies artifact
-        run: |
-          mkdir -p artifact
-          cp cookies.txt artifact/
 
       - name: Start bot
         run: node index.js
@@ -72,6 +82,7 @@ jobs:
           COOKIES_FILE: cookies.txt
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
+          SPOTIFY_ACCESS_TOKEN: ${{ env.SPOTIFY_ACCESS_TOKEN }}
 
       - name: Upload cookies artifact
         uses: actions/upload-artifact@v4
@@ -81,4 +92,4 @@ jobs:
 
       - name: Bring down VPN
         if: always()
-        run: sudo wg-quick down /usr/local/etc/wireguard/wg0.conf
+        run: sudo wg-quick down /etc/wireguard/wg0.conf
