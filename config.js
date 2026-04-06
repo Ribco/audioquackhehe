@@ -4,7 +4,7 @@ require('dotenv').config();
 module.exports = {
     // Discord Bot Settings
     discord: {
-        token: process.env.DISCORD_TOKEN || '',
+        token: process.env.DISCORD_TOKEN,
         clientId: process.env.CLIENT_ID || '1489574284572495944',
         guildId: process.env.GUILD_ID || null, // Leave null for global commands
     },
