@@ -4,15 +4,15 @@ require('dotenv').config();
 module.exports = {
     // Discord Bot Settings
     discord: {
-        token: process.env.DISCORD_TOKEN || 'YOUR_DISCORD_BOT_TOKEN_HERE',
-        clientId: process.env.CLIENT_ID || 'YOUR_CLIENT_ID_HERE',
+        token: process.env.DISCORD_TOKEN || '',
+        clientId: process.env.CLIENT_ID || '1489574284572495944',
         guildId: process.env.GUILD_ID || null, // Leave null for global commands
     },
 
     // Spotify API Settings
     spotify: {
-        clientId: process.env.SPOTIFY_CLIENT_ID || 'YOUR_SPOTIFY_CLIENT_ID',
-        clientSecret: process.env.SPOTIFY_CLIENT_SECRET || 'YOUR_SPOTIFY_CLIENT_SECRET',
+        clientId: process.env.SPOTIFY_CLIENT_ID || '',
+        clientSecret: process.env.SPOTIFY_CLIENT_SECRET || '',
     },
 
     // Genius API Settings
