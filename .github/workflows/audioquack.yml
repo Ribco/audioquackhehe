@@ -1,26 +1,4 @@
-name: 🦆 AudioQuack
-
-on:
-  workflow_dispatch:
-
-jobs:
-  run:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install yt-dlp
-        run: pip install yt-dlp
-
-      - name: Start bot
-        run: npx ts-node index.js
+- name: 🦆 AudioQuack
+        run: node index.js
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
