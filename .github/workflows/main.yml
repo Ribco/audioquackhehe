@@ -1,6 +1,5 @@
 name: AudioQuack
 
-# Cancel older runs in the same branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
@@ -9,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ───────────────────────────────────────────────────────────
+
   prep_ubuntu:
     name: Prepare on Ubuntu
     runs-on: ubuntu-latest
@@ -28,10 +27,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies (Ubuntu)
         shell: bash
         run: |
-          npm ci
+          if [ -f package-lock.json ]; then
+            echo "Lockfile found → using npm ci"
+            npm ci
+          else
+            echo "No lockfile → using npm install"
+            npm install
+          fi
           python3 -m pip install -U yt-dlp discord.py spotify-dlp
 
       - name: Write cookies file
@@ -41,24 +46,23 @@ jobs:
           printf '%s\n' "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
           cp cookies.txt artifact/cookies.txt
 
-      - name: Debug cookies.txt
+      - name: Debug cookies
         shell: bash
         run: |
-          echo "Cookies preview:"
+          echo "Cookies lines:"
           wc -l cookies.txt
           head -n 5 cookies.txt
 
-      - name: Upload cookies artifact
+      - name: Upload cookies to artifact
         uses: actions/upload-artifact@v4
         with:
           name: cookies
           path: artifact/cookies.txt
 
-  # ───────────────────────────────────────────────────────────
   macos_bot:
     name: Start Bot on macOS
-    runs-on: macos-latest
     needs: prep_ubuntu
+    runs-on: macos-latest
     defaults:
       run:
         shell: bash
@@ -78,7 +82,7 @@ jobs:
           name: cookies
           path: .
 
-      - name: Install Homebrew (if missing) & system deps
+      - name: Install Homebrew (macOS) & system deps
         run: |
           if ! command -v brew >/dev/null 2>&1; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -102,29 +106,36 @@ jobs:
           sudo chmod 600 /etc/wireguard/wg0.conf
 
       - name: Bring up VPN
-        id: vpn_up
-        run: |
-          echo "Bringing up VPN..."
-          sudo wg-quick up wg0
+        run: sudo wg-quick up wg0
 
       - name: Verify public IP
         run: |
           sleep 5
-          echo "VPN IP (should show exit IP):"
+          echo "VPN exit IP:"
           curl ifconfig.me || true
 
-      - name: Install Python deps on macOS
+      - name: Install dependencies on macOS
+        shell: bash
         run: |
+          if [ -f package-lock.json ]; then
+            echo "Lockfile found → using npm ci"
+            npm ci
+          else
+            echo "No lockfile → using npm install"
+            npm install
+          fi
           python3 -m pip install -U yt-dlp discord.py spotify-dlp
 
       - name: Start the bot
+        shell: bash
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           COOKIES_FILE: cookies.txt
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
           SPOTIFY_ACCESS_TOKEN: ${{ secrets.SPOTIFY_ACCESS_TOKEN }}
-        run: node index.js
+        run: |
+          node index.js
 
       - name: Bring down VPN
         if: always()
