@@ -5,56 +5,65 @@ on:
 
 jobs:
   run:
-    runs-on: macos-13
+    runs-on: macos-latest-large
 
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install system deps
+      - name: Install system dependencies on macOS
         run: |
-          sudo apt update
-          sudo apt install -y wireguard curl
+          # Install Homebrew if not already present
+          which brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+          # Add Homebrew to PATH for this session
+          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $GITHUB_ENV
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          # Update brew and install WireGuard tools + curl
+          brew update
+          brew install wireguard-tools curl
+        timeout-minutes: 10
 
       - name: Write WireGuard config
         run: |
-          mkdir -p /etc/wireguard
-          echo "${{ secrets.WG_CONFIG }}" | sudo tee /etc/wireguard/wg0.conf
-          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo mkdir -p /usr/local/etc/wireguard
+          echo "${{ secrets.WG_CONFIG }}" | sudo tee /usr/local/etc/wireguard/wg0.conf > /dev/null
+          sudo chmod 600 /usr/local/etc/wireguard/wg0.conf
 
-      - name: Bring up VPN
+      - name: Bring up WireGuard VPN
         run: |
-          sudo wg-quick up /etc/wireguard/wg0.conf
+          sudo wg-quick up /usr/local/etc/wireguard/wg0.conf
 
       - name: Verify VPN public IP
         run: |
           sleep 5
-          echo "Public IP before VPN check:"
+          echo "Public IP via curl (should reflect VPN exit):"
           curl ifconfig.me
 
-      - name: Install dependencies
+      - name: Install Node.js dependencies
         run: npm install
 
-      - name: Install yt-dlp
-        run: pip install -U yt-dlp && pip install -U discord.py spotify-dlp
+      - name: Install Python tools
+        run: |
+          pip install -U yt-dlp
+          pip install -U discord.py spotify-dlp
 
-      - name: Write YouTube cookies
-        run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+      - name: Write and debug YouTube cookies
+        run: |
+          echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+          wc -l cookies.txt
+          head -n 3 cookies.txt
 
       - name: Prepare cookies artifact
         run: |
           mkdir -p artifact
-          cp cookies.txt artifact/cookies.txt
-
-      - name: Debug cookies.txt
-        run: |
-          wc -l cookies.txt
-          head -3 cookies.txt
+          cp cookies.txt artifact/
 
       - name: Start bot
         run: node index.js
@@ -72,4 +81,4 @@ jobs:
 
       - name: Bring down VPN
         if: always()
-        run: sudo wg-quick down /etc/wireguard/wg0.conf
+        run: sudo wg-quick down /usr/local/etc/wireguard/wg0.conf
