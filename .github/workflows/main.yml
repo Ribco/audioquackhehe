@@ -44,23 +44,8 @@ jobs:
           echo "Public IP via curl (should reflect VPN exit):"
           curl ifconfig.me
 
-      - name: Refresh Spotify Access Token
-        id: refresh_spotify
-        run: |
-          # Request new access token using stored refresh token (OAuth2)
-          RESPONSE=$( \
-            curl -s -X POST https://accounts.spotify.com/api/token \
-              -H "Content-Type: application/x-www-form-urlencoded" \
-              -d "grant_type=refresh_token" \
-              -d "refresh_token=${{ secrets.SPOTIFY_REFRESH_TOKEN }}" \
-              -d "client_id=${{ secrets.SPOTIFY_CLIENT_ID }}" \
-              -d "client_secret=${{ secrets.SPOTIFY_CLIENT_SECRET }}" \
-          )
-
-          echo "Spotify refresh response: $RESPONSE"
-
-          ACCESS_TOKEN=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])")
-          echo "SPOTIFY_ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+      - name: Check issues
+       uses: actions/configure-pages@v4
 
       - name: Install Node & Python deps
         run: |
