@@ -5,6 +5,9 @@ const LanguageManager = require('./LanguageManager');
 class YouTube {
     // yt-dlp için ortak parametreleri döndüren yardımcı fonksiyon
     static getYtDlpOptions(extraOptions = {}) {
+        console.log('[DEBUG] cookiesFile:', config.ytdl.cookiesFile);
+    console.log('[DEBUG] poToken:', config.ytdl.poToken ? 'set' : 'not set');
+    console.log('[DEBUG] cookiesFromBrowser:', config.ytdl.cookiesFromBrowser);
         const baseOptions = {
             noCheckCertificates: true,
             noWarnings: true,
