@@ -491,7 +491,7 @@ setTimeout(() => {
             }
 
             // Login to Discord
-            await client.login(config.discord.token);
+            await client.login(config.DISCORD.TOKEN);
 
         } catch (error) {
             console.error(chalk.red('❌ Failed to start bot:'), error);
