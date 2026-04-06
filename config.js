@@ -11,8 +11,8 @@ module.exports = {
 
     // Spotify API Settings
     spotify: {
-        clientId: process.env.SPOTIFY_CLIENT_ID || '',
-        clientSecret: process.env.SPOTIFY_CLIENT_SECRET || '',
+        clientId: 'd22d91e3cf774e578d34dd1aa281e936',
+        clientSecret: process.env.SPOTIFY_CLIENT_SECRET || '7b54f69180b6430d99169aa109cba786',
     },
 
     // Genius API Settings
