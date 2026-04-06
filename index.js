@@ -209,6 +209,7 @@ setTimeout(() => {
     client.once(Events.ClientReady, async () => {
         console.log(chalk.green(`✅ [SHARD ${client.shard?.ids[0] ?? 0}] ${client.user.tag} is online and ready!`));
         console.log(chalk.cyan(`🎵 [SHARD ${client.shard?.ids[0] ?? 0}] Music bot serving ${client.guilds.cache.size} servers on this shard!`));
+        client.user.setStatus("idle")
         
         // Log total guild count across all shards (only if running with sharding)
         // Wait a bit to ensure all shards are ready before fetching
