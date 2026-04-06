@@ -57,7 +57,7 @@ module.exports = {
         quality: 'highestaudio',
         highWaterMark: 1 << 25,
         cookiesFromBrowser: 'chrome', // 'chrome', 'firefox', 'edge', 'safari'
-        cookiesFile: './cookies.txt', // './cookies.txt'
+        cookiesFile: process.env.YOUTUBE_COOKIES, // './cookies.txt'
         poToken: process.env.YOUTUBE_PO_TOKEN, // YouTube PO Token (sunucu IP'leri için)
     },
 
