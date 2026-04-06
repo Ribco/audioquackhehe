@@ -25,13 +25,18 @@ jobs:
       - name: Write YouTube cookies
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
 
-      - name: Check cookies file
-        run: cat cookies.txt | head -5
+      - name: Debug cookies
+        run: |
+          echo "COOKIES_FILE=$COOKIES_FILE"
+          wc -l cookies.txt
+          head -3 cookies.txt
+        env:
+          COOKIES_FILE: cookies.txt
 
       - name: Start bot
         run: node index.js
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          COOKIES_FILE: cookies.txt
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
+          COOKIES_FILE: cookies.txt
