@@ -9,7 +9,6 @@ on:
 
 jobs:
 
-  # ─────────────────────────────────────────────
   setup:
     name: ⚙️ Setup & Build Environment
     runs-on: ubuntu-latest
@@ -22,13 +21,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
-          cache: npm
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
       - name: 📦 Install Dependencies
         run: |
@@ -38,7 +35,7 @@ jobs:
             echo "[INFO] Using npm ci"
             npm ci
           else
-            echo "[INFO] Using npm install"
+            echo "[WARN] No lockfile → using npm install"
             npm install
           fi
 
@@ -55,7 +52,6 @@ jobs:
           name: cookies
           path: artifact/cookies.txt
 
-  # ─────────────────────────────────────────────
   vpn:
     name: 🔐 VPN Tunnel Setup
     runs-on: ubuntu-latest
@@ -88,10 +84,6 @@ jobs:
           echo "[INFO] Current IP:"
           curl ifconfig.me || true
 
-      - name: 📤 Persist VPN Session
-        run: echo "VPN_READY=true" >> $GITHUB_ENV
-
-  # ─────────────────────────────────────────────
   bot:
     name: 🤖 Launch AudioQuack Bot
     runs-on: ubuntu-latest
@@ -105,7 +97,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: 📥 Download Cookies
         uses: actions/download-artifact@v4
