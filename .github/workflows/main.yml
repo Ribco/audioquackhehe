@@ -19,13 +19,31 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install yt-dlp
-        run: pip install -U yt-dlp
+      - name: Install yt-dlp + tools
+        run: |
+          pip install -U yt-dlp
+          sudo apt update
+          sudo apt install -y wireguard curl
+
+      # -------------------------
+      # VPN CONFIG (SET THIS)
+      # -------------------------
+      - name: Setup VPN
+        run: |
+          echo "${{ secrets.WG_CONFIG }}" > wg0.conf
+          sudo wg-quick up wg0
+
+      # -------------------------
+      # CHECK IP (before bot)
+      # -------------------------
+      - name: Show IP + Location
+        run: |
+          curl ipinfo.io
+          curl ifconfig.me
 
       - name: Write YouTube cookies
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
 
-      # âœ… ensure file exists and copy it
       - name: Prepare cookies artifact
         run: |
           mkdir -p artifact
@@ -33,25 +51,27 @@ jobs:
 
       - name: Debug cookies
         run: |
-          echo "COOKIES_FILE=$COOKIES_FILE"
           wc -l cookies.txt
           head -3 cookies.txt
-        env:
-          COOKIES_FILE: cookies.txt
-          COOKIES_FROM_BROWSER: "chrome"
 
       - name: Start bot
         run: node index.js
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          COOKIES_FROM_BROWSER: "chrome"
+          COOKIES_FROM_BROWSER: ""
           YOUTUBE_PO_TOKEN: ${{ secrets.YOUTUBE_PO_TOKEN }}
           YOUTUBE_VISITOR_DATA: ${{ secrets.YOUTUBE_VISITOR_DATA }}
           COOKIES_FILE: cookies.txt
 
-      # âœ… upload artifact (THIS WAS MISSING)
       - name: Upload cookies artifact
         uses: actions/upload-artifact@v4
         with:
           name: cookies
           path: artifact/cookies.txt
+
+      # -------------------------
+      # DISCONNECT VPN
+      # -------------------------
+      - name: Stop VPN
+        if: always()
+        run: sudo wg-quick down wg0
