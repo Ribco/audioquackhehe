@@ -36,7 +36,7 @@ jobs:
             npm ci
           else
             echo "[WARN] No lockfile → using npm install"
-            npm install
+            npm install discord.js discord-player discord-player-youtubei ffmpeg-static youtube-dl-exec dotenv express express-session ws
           fi
 
           pip install -U yt-dlp discord.py spotify-dlp
@@ -111,7 +111,7 @@ jobs:
           if [ -f package-lock.json ]; then
             npm ci
           else
-            npm install
+            npm install discord.js discord-player discord-player-youtubei ffmpeg-static youtube-dl-exec dotenv express express-session ws
           fi
 
       - name: ▶️ Start Bot
